@@ -270,23 +270,24 @@ async def cmd_history(message: Message, transaction_service: TransactionService)
 
     lines = ["🧾 <b>Last transactions</b>\n"]
     for transaction in transactions:
-        sign = (
-            "➕"
-            if transaction["type"] == "income"
-            else "➖"
-            if transaction["type"] == "expense"
-            else "•"
-        )
+        type_ = transaction["type"]
+        if type_ == "income":
+            marker, sign = "🟢", "+"
+        elif type_ == "expense":
+            marker, sign = "🔴", "−"
+        else:
+            marker, sign = "⚪️", ""
         when = transaction["created_at"].strftime("%Y-%m-%d %H:%M")
         category = (
             html.escape(transaction["category"]) if transaction["category"] else "—"
         )
-        note = (
-            f" — {html.escape(transaction['note'])}" if transaction["note"] else ""
+        line = (
+            f"{marker} {sign}{format_money(transaction['amount'])} "
+            f"| {category} | {when}"
         )
-        lines.append(
-            f"{sign} {format_money(transaction['amount'])} | {category} | {when}{note}"
-        )
+        if transaction["note"]:
+            line += f"\n<blockquote>{html.escape(transaction['note'])}</blockquote>"
+        lines.append(line)
     await message.answer("\n".join(lines))
 
 
