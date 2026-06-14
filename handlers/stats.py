@@ -4,7 +4,7 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from handlers.transactions import format_money, send_stats_chart
+from handlers.transactions import format_money, net_status_line, send_stats_chart
 from services.chart_service import ChartService
 from services.transaction_service import TransactionService
 
@@ -26,6 +26,7 @@ async def cmd_stats(
         f"━━━━━━━━━━\n"
         f"🧮 Net:     {format_money(stats['net'])}"
     )
+    text += net_status_line(stats)
     await message.answer(text)
     await send_stats_chart(
         message,

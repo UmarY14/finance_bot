@@ -77,6 +77,21 @@ def format_money(value) -> str:
     return f"{Decimal(value):,.2f}"
 
 
+def net_status_line(stats: dict) -> str:
+    """Budget status for the month based on net = income - expense."""
+    net = stats["net"]
+    if net < 0:
+        return (
+            f"\n\n🔴 <b>Overspending!</b> Your expenses exceed income by "
+            f"{format_money(-net)} this month."
+        )
+    if net > 0:
+        return (
+            f"\n\n🟢 Within budget — net savings of {format_money(net)} this month."
+        )
+    return "\n\n⚪️ Breaking even this month."
+
+
 class AddTransaction(StatesGroup):
     amount = State()
     type = State()
@@ -189,6 +204,12 @@ async def _finalize(
                 f"\n\n⚠️ Limit exceeded! Spent {format_money(breach['spent'])} "
                 f"of {format_money(breach['limit'])} this month."
             )
+    month_stats = await transaction_service.monthly_stats(user_id)
+    if month_stats["net"] < 0:
+        text += (
+            f"\n\n🔴 Heads up: this month your expenses exceed income by "
+            f"{format_money(-month_stats['net'])}."
+        )
     await (target.edit_text if edit else target.answer)(text)
     await state.clear()
     await send_stats_chart(
