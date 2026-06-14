@@ -56,6 +56,10 @@ async def send_stats_chart(
         logger.exception("Failed to render/send stats chart")
 
 
+# Largest value that fits the amount column NUMERIC(12, 2).
+MAX_AMOUNT = Decimal("9999999999.99")
+
+
 def parse_amount(text: str) -> Decimal | None:
     cleaned = (text or "").strip().lower()
     for junk in (" ", ",", "so'm", "som", "uzs"):
@@ -64,7 +68,9 @@ def parse_amount(text: str) -> Decimal | None:
         value = Decimal(cleaned)
     except InvalidOperation:
         return None
-    return value if value > 0 else None
+    if value <= 0 or value > MAX_AMOUNT:
+        return None
+    return value
 
 
 def format_money(value) -> str:
@@ -90,7 +96,8 @@ async def add_amount(message: Message, state: FSMContext):
     amount = parse_amount(message.text)
     if amount is None:
         await message.answer(
-            "⚠️ Invalid amount. Send a positive number, e.g. 45000:",
+            "⚠️ Invalid amount. Send a positive number up to 9,999,999,999 "
+            "(e.g. 45000):",
             reply_markup=cancel_keyboard(),
         )
         return
@@ -160,7 +167,15 @@ async def _finalize(
     amount = Decimal(data["amount"])
     type_ = data["type"]
     category_id = data["category_id"]
-    await transaction_service.add(user_id, category_id, amount, note)
+    try:
+        await transaction_service.add(user_id, category_id, amount, note)
+    except Exception:
+        logger.exception("Failed to save transaction")
+        await state.clear()
+        await (target.edit_text if edit else target.answer)(
+            "⚠️ Couldn't save this transaction. Please try /add again."
+        )
+        return
     sign = "➕" if type_ == "income" else "➖"
     text = (
         f"✅ Saved!\n"
