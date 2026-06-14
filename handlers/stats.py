@@ -4,7 +4,8 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from handlers.transactions import format_money
+from handlers.transactions import format_money, send_stats_chart
+from services.chart_service import ChartService
 from services.transaction_service import TransactionService
 
 
@@ -12,7 +13,11 @@ router = Router()
 
 
 @router.message(Command("stats"))
-async def cmd_stats(message: Message, transaction_service: TransactionService):
+async def cmd_stats(
+    message: Message,
+    transaction_service: TransactionService,
+    chart_service: ChartService,
+):
     stats = await transaction_service.monthly_stats(message.from_user.id)
     text = (
         f"📊 <b>{date.today():%B %Y}</b>\n\n"
@@ -22,6 +27,13 @@ async def cmd_stats(message: Message, transaction_service: TransactionService):
         f"🧮 Net:     {format_money(stats['net'])}"
     )
     await message.answer(text)
+    await send_stats_chart(
+        message,
+        message.from_user.id,
+        transaction_service,
+        chart_service,
+        caption="📊 This month at a glance",
+    )
 
 
 @router.message(Command("monthly"))

@@ -34,6 +34,10 @@ class TransactionService:
         rows = await self.db.fetch(queries.CURRENT_MONTH_TRANSACTIONS, user_id)
         return [dict(row) for row in rows]
 
+    async def expense_by_category(self, user_id: int) -> list[dict]:
+        rows = await self.db.fetch(queries.MONTHLY_EXPENSE_BY_CATEGORY, user_id)
+        return [dict(row) for row in rows]
+
     async def category_month_spent(self, user_id: int, category_id: int) -> Decimal:
         return await self.db.fetchval(
             queries.CATEGORY_MONTH_SPENT, user_id, category_id

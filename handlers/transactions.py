@@ -1,14 +1,17 @@
+import asyncio
 import csv
 import html
+import logging
 import os
 import tempfile
+from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, FSInputFile, Message
+from aiogram.types import BufferedInputFile, CallbackQuery, FSInputFile, Message
 
 from keyboards.inline import (
     cancel_keyboard,
@@ -17,10 +20,40 @@ from keyboards.inline import (
     type_keyboard,
 )
 from services.category_service import CategoryService
+from services.chart_service import ChartService
 from services.transaction_service import TransactionService
 
 
 router = Router()
+logger = logging.getLogger(__name__)
+
+
+async def send_stats_chart(
+    target: Message,
+    user_id: int,
+    transaction_service: TransactionService,
+    chart_service: ChartService,
+    caption: str | None = None,
+) -> None:
+    """Render this month's overview chart and send it. Never raises: a chart
+    failure must not break the surrounding command."""
+    try:
+        stats = await transaction_service.monthly_stats(user_id)
+        breakdown = await transaction_service.expense_by_category(user_id)
+        month_label = date.today().strftime("%B %Y")
+        png = await asyncio.to_thread(
+            chart_service.render_monthly_overview,
+            month_label,
+            stats["income"],
+            stats["expense"],
+            stats["net"],
+            breakdown,
+        )
+        await target.answer_photo(
+            BufferedInputFile(png, filename="stats.png"), caption=caption
+        )
+    except Exception:
+        logger.exception("Failed to render/send stats chart")
 
 
 def parse_amount(text: str) -> Decimal | None:
@@ -118,6 +151,7 @@ async def _finalize(
     user_id: int,
     state: FSMContext,
     transaction_service: TransactionService,
+    chart_service: ChartService,
     note: str | None,
     *,
     edit: bool,
@@ -142,17 +176,24 @@ async def _finalize(
             )
     await (target.edit_text if edit else target.answer)(text)
     await state.clear()
+    await send_stats_chart(
+        target, user_id, transaction_service, chart_service, caption="📊 Your month so far"
+    )
 
 
 @router.callback_query(AddTransaction.note, F.data == "add:skip")
 async def add_note_skip(
-    callback: CallbackQuery, state: FSMContext, transaction_service: TransactionService
+    callback: CallbackQuery,
+    state: FSMContext,
+    transaction_service: TransactionService,
+    chart_service: ChartService,
 ):
     await _finalize(
         callback.message,
         callback.from_user.id,
         state,
         transaction_service,
+        chart_service,
         None,
         edit=True,
     )
@@ -161,13 +202,17 @@ async def add_note_skip(
 
 @router.message(AddTransaction.note)
 async def add_note_text(
-    message: Message, state: FSMContext, transaction_service: TransactionService
+    message: Message,
+    state: FSMContext,
+    transaction_service: TransactionService,
+    chart_service: ChartService,
 ):
     await _finalize(
         message,
         message.from_user.id,
         state,
         transaction_service,
+        chart_service,
         (message.text or "").strip(),
         edit=False,
     )

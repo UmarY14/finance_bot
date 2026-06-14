@@ -68,6 +68,17 @@ WHERE user_id = $1 AND category_id = $2
   AND date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE)
 """
 
+MONTHLY_EXPENSE_BY_CATEGORY = """
+SELECT c.name, SUM(t.amount) AS total
+FROM transactions t
+JOIN categories c ON c.id = t.category_id
+WHERE t.user_id = $1
+  AND c.type = 'expense'
+  AND date_trunc('month', t.created_at) = date_trunc('month', CURRENT_DATE)
+GROUP BY c.name
+ORDER BY total DESC
+"""
+
 # ---- limits (bonus) ----
 UPSERT_LIMIT = (
     "INSERT INTO limits (user_id, category_id, amount) VALUES ($1, $2, $3) "

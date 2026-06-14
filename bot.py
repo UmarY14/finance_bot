@@ -10,6 +10,7 @@ from config import Config
 from db.connection import Database
 from handlers import categories, start, stats, transactions
 from services.category_service import CategoryService
+from services.chart_service import ChartService
 from services.transaction_service import TransactionService
 from services.user_service import UserService
 
@@ -46,6 +47,7 @@ async def main() -> None:
     dispatcher["user_service"] = UserService(db)
     dispatcher["category_service"] = CategoryService(db)
     dispatcher["transaction_service"] = TransactionService(db)
+    dispatcher["chart_service"] = ChartService()
 
     dispatcher.include_router(start.router)
     dispatcher.include_router(transactions.router)
