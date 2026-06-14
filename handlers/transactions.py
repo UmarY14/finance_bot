@@ -272,11 +272,11 @@ async def cmd_history(message: Message, transaction_service: TransactionService)
     for transaction in transactions:
         type_ = transaction["type"]
         if type_ == "income":
-            marker, sign = "🟢", "+"
+            marker, sign = "🟩", "+"
         elif type_ == "expense":
-            marker, sign = "🔴", "−"
+            marker, sign = "🟥", "−"
         else:
-            marker, sign = "⚪️", ""
+            marker, sign = "⬜️", ""
         when = transaction["created_at"].strftime("%Y-%m-%d %H:%M")
         category = (
             html.escape(transaction["category"]) if transaction["category"] else "—"
