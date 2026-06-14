@@ -112,6 +112,21 @@ python bot.py
 | `DB_USER` | PostgreSQL username used by the bot |
 | `DB_PASS` | PostgreSQL password for `DB_USER` |
 
+## Deploy on Railway
+
+The bot runs as a long-polling worker and applies its schema automatically on startup.
+
+1. Push this repository to GitHub.
+2. On [railway.app](https://railway.app): **New Project → Deploy from GitHub repo** and pick this repo.
+3. In the project, **New → Database → PostgreSQL** (Railway provisions a managed Postgres).
+4. Open the bot service → **Variables** and add:
+   - `BOT_TOKEN` = your BotFather token
+   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (reference the Postgres service)
+5. Railway uses the `Procfile` (`web: python bot.py`) as the start command. Redeploy.
+6. Check **Deploy Logs** for `Run polling for bot @<your_bot>` — the bot is live.
+
+No manual migration is needed; `Database.migrate()` creates the tables on first boot.
+
 ## Deploy on a Linux Server
 
 ### screen method
