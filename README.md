@@ -16,7 +16,7 @@ A Telegram bot for tracking personal income, expenses, categories, monthly limit
 | `/monthly` | Compare income, expense, and net for the last 3 months |
 | `/cancel` | Cancel the current action |
 
-Bot username: `<fill after deploy>`
+Bot username: [@Finesys_bot](https://t.me/Finesys_bot)
 
 ## Tech Stack
 
